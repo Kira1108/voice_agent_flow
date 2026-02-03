@@ -94,6 +94,7 @@ class AgentRunner:
         # if base model, run transfer to get next agent
         elif isinstance(output, BaseModel):
             self.collected_information.append(output)
+            print("Collected information:", output.model_dump())
             
             target_agent = output.transfer()
             if target_agent == 'end':
