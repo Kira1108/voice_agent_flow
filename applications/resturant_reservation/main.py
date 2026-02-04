@@ -59,7 +59,7 @@ agents = {
 runner = AgentRunner(
     agents=agents, 
     entry_agent_name="party_size_collector",
-    ending_message='感谢您的接听，已经帮您预定好了，再见！'
+    ending_message='Thanks for your reservation, wish to see you at our restaurant, your reservation is confirmed.'
 )
     
     

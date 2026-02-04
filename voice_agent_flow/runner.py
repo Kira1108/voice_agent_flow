@@ -7,7 +7,10 @@ from voice_agent_flow.node import AgentNode
 
 ENDING_MESSAGE = "感谢您的接听，祝您生活愉快，再见！"
 
-REHPRASING_HINT = "Task not completed, continuing talk with the user, if re-ask the same question, do change phrasing and word of choice."
+REHPRASING_HINT = (
+    "Task not completed, continuing talk with the user, if re-ask the same question, do change phrasing and word of choice."
+    "Before start replying, add a filler phrase to mimic natural conversation. like '哦哦'， '好的', 'I see', 'Got it'"
+)
 
 class AgentRunner:
     def __init__(self, 
