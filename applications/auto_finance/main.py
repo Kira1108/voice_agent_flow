@@ -31,6 +31,8 @@ Do not Generate Structured output until you have collected information defined b
 """
 
 agents = {
+    
+    # Complex business rules, you need more prompt, but just in this step.
     "customer_name_inquiry": AgentNode(
         name="customer_name_inquiry",
         model=model,
@@ -46,6 +48,7 @@ agents = {
         examples=["您好，请问是xxx(plug customer name here)吗？"],
         ),
     
+    # Complex business rules, you need more prompt, but just in this step.
     "financial_support_inquiry": AgentNode(
         name="financial_support_inquiry",
         model=model,
@@ -59,6 +62,7 @@ agents = {
         examples=["您好，李先生，请问您对我们的金融支持服务感兴趣吗？"],
         ),
     
+    # simple business rules, you can be direct and concise.
     "vehicle_payment_status": AgentNode(
         name="vehicle_payment_status",
         model=model,
@@ -67,6 +71,8 @@ agents = {
         step_instruction="Ask the customer whether the vehicle is already fully paid off.",
         examples=["请问您的车辆目前是已经还清贷款了吗？"],
         ),
+    
+    # simple business rules, you can be direct and concise.
     "vehicle_liscence_under_control": AgentNode(
         name="vehicle_liscence_under_control",
         model=model,
@@ -76,6 +82,7 @@ agents = {
         examples=["请问您的车辆行驶证现在是在您本人手上吗？"],
         ),
     
+    # simple business rules, you can be direct and concise.
     "agree_wechat_add": AgentNode(
         name="agree_wechat_add",
         model=model,
@@ -85,6 +92,7 @@ agents = {
         examples=["为了方便后续联系，您是否同意添加我们的微信账号？"],
         ),
     
+    # simple business rules, you can be direct and concise.
     "ask_wechat_id": AgentNode(
         name="ask_wechat_id",
         model=model,
