@@ -1,5 +1,4 @@
-
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic import BaseModel
 
@@ -14,6 +13,7 @@ class AgentNode:
     instruction:str
     example:str
     task_cls:BaseModel
+    tools: list = field(default_factory=list)
     
     def create(self) -> Agent:
         prompt = self.instruction.format(example=self.example)
@@ -23,9 +23,8 @@ class AgentNode:
             model = self.model, 
             output_type = self.task_cls | str,
             instructions = prompt, 
+            tools = self.tools
+        
         )
-    
-    
-
 
 
