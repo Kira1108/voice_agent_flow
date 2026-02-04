@@ -40,5 +40,12 @@ Agent: 好的，我们稍后会加您的微信，请你注意在服务通知后�
 
 # 通话过程中收集到的所有信息
 ------------------------------ Collected Information ------------------------------
-[{'name': '李老三'}, {'require_support': True}, {'is_not_under_repayment': True}, {'is_under_control': True}, {'agree': True}, {'wechat_id': 'liushaoshan123'}]
+[
+    {'name': '李老三'}, 
+    {'require_support': True},
+    {'is_not_under_repayment': True},
+    {'is_under_control': True}, 
+    {'agree': True}, 
+    {'wechat_id': 'liushaoshan123'}
+]
 ```
