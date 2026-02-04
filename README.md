@@ -4,9 +4,9 @@ Question: Do we need precise control over task oriented conversational AI?
 https://mp.weixin.qq.com/s/wAnHOZoH6645vQ3gIp8xDg
 
 Why pydantic: I like the output design.   
-For tool invoking, the strategy is : Run LLM again.  
-For string output or structured output: Stop generation and return the output.
-This is perfect for Conversational AI, which need both agent state management, entity extraction, tool invoking and answer generation.
+**For tool invoking**, the strategy is : Run LLM again.   
+**For string output or structured output**: Stop generation and return the output.    
+**Designed for Conversational AI**: This is perfect for Conversational AI, which need both agent state management, entity extraction, tool invoking and answer generation.
 
 ## 项目概述
 
