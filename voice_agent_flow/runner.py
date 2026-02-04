@@ -1,7 +1,7 @@
 from typing import Dict
 
 from pydantic import BaseModel
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ModelResponse, TextPart
 
 from voice_agent_flow.node import AgentNode
 
@@ -47,6 +47,9 @@ class AgentRunner:
         # if string, return directly
         if isinstance(output, str):
             self.all_messages = res.all_messages()
+            self.all_messages.append(
+                ModelResponse(parts = [TextPart(content = "<reasoning>" + REHPRASING_HINT + "</reasoning>")])
+            )
             return output
         
         # if base model, run transfer to get next agent

@@ -36,7 +36,13 @@ agents = {
         model=model,
         instruction=instruction,
         task_cls= CustomerName,
-        step_instruction="Confirm the customer's name with a greeting message(customer name included in the message). Amubiguous response from customer should be treated as confirmation and create the schema. Current Customer Name: 李老三",
+        step_instruction=(
+            "Confirm the customer's name with a greeting message(customer name included in the message)."
+            "Amubiguous response from customer should be treated as confirmation and create the schema. Current Customer Name: 李老三"
+            "Any response for the message will be treated as confirmation unless the customer explicitly says he/she is not the person or dialed wrong number."
+            "Event a simple ‘嗯’, ‘呃’, '哪里'，‘你说’ indicates a confirmation. You shoule create the schema immediately"
+        ),
+            
         examples=["您好，请问是xxx(plug customer name here)吗？"],
         ),
     
@@ -45,7 +51,11 @@ agents = {
         model=model,
         instruction=instruction,
         task_cls= FinancialSupportStatus,
-        step_instruction="Ask the customer whether he/she need financial support.",
+        step_instruction=(
+            "Ask the customer whether he/she need financial support."
+            "Customer raising a new question in step indicates she/he is interested in the financial support."
+            "You should answer the customer query first, after the deviation is handled, create the schema immediately."
+        ),
         examples=["您好，李先生，请问您对我们的金融支持服务感兴趣吗？"],
         ),
     
