@@ -1,5 +1,13 @@
 # Voice Agent Flow - 基于状态管理的语音智能体交接系统
 
+Question: Do we need precise control over task oriented conversational AI?
+https://mp.weixin.qq.com/s/wAnHOZoH6645vQ3gIp8xDg
+
+Why pydantic: I like the output design.   
+For tool invoking, the strategy is : Run LLM again.  
+For string output or structured output: Stop generation and return the output.
+This is perfect for Conversational AI, which need both agent state management, entity extraction, tool invoking and answer generation.
+
 ## 项目概述
 
 Voice Agent Flow 是一个创新的多智能体协作框架，专门为语音交互场景设计。该系统通过 Pydantic 结构化输出和智能转移机制，实现了智能体之间的无缝交接，有效解决了传统语音智能体系统中的状态管理、信息传递和流程控制问题。
