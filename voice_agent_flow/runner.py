@@ -69,6 +69,9 @@ class AgentRunner:
             output = res.output
             return output
         
+        else:
+            raise ValueError("Unsupported output type from agent.")
+        
         return "Error"
     
     def show_information(self):
