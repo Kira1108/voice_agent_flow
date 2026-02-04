@@ -7,6 +7,8 @@ from voice_agent_flow.node import AgentNode
 
 ENDING_MESSAGE = "感谢您的接听，祝您生活愉快，再见！"
 
+REHPRASING_HINT = "Task not completed, continuing talk with the user, if re-ask the same question, do change phrasing and word of choice."
+
 class AgentRunner:
     def __init__(self, 
                  agents:Dict[str, AgentNode], 
@@ -41,11 +43,10 @@ class AgentRunner:
         # get the output
         output = res.output
         
-        # update message history
-        self.all_messages = res.all_messages()
         
         # if string, return directly
         if isinstance(output, str):
+            self.all_messages = res.all_messages()
             return output
         
         # if base model, run transfer to get next agent
@@ -60,6 +61,7 @@ class AgentRunner:
             self.current_agent = self.get_agent(target_agent)
             
             # rerun next agent
+            self.all_messages = res.all_messages()
             res = self.current_agent.run_sync(input_text, message_history = self.all_messages)
             
             # update message history
@@ -72,7 +74,6 @@ class AgentRunner:
         else:
             raise ValueError("Unsupported output type from agent.")
         
-        return "Error"
     
     def show_information(self):
         objs = self.collected_information

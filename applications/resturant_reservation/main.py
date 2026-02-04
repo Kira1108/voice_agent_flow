@@ -22,8 +22,6 @@ BE SURE THAT YOU DON"T IGNORE THE CURRENT QUESTION CUSTOMER ASKS.
 
 Handle Deviation first, then back to the main task.
 
-Example inquiry/response: {example}
-
 Restaurant Location: Beijing, China, Wangfujing Street, NewWorld Department Store, 3rd Floor 2203.
 """
 
@@ -40,15 +38,19 @@ agents = {
         name="party_size_collector",
         model=model,
         instruction=instruction,
-        example="Hi there, how can I help you today?\nHow many people will be joining you for the reservation?",
+        step_instruction="Ask the customer about the party size for the reservation.",
+        examples=[
+            "Hi there, how can I help you today? (First turn greeting example)",
+            "How many people will be joining you for the reservation? (Second turn party size inquiry example)"],
         task_cls= PartySizeResult
         ),
     
     "time_collector": AgentNode(
         name="time_collector",
         model=model,
-        instruction=instruction + "\n You shoule check the availablity of the restaurant before confirming the reservation.",
-        example="What time would you like to make the reservation for?",
+        instruction=instruction,
+        step_instruction="Ask the customer about the reservation time. You should check the availability of the restaurant before confirming the reservation.",
+        examples=["What time would you like to make the reservation for?"],
         task_cls= TimeResult,
         tools = [check_availability]
         ),
