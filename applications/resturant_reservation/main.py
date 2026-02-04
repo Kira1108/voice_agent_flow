@@ -9,7 +9,7 @@ from voice_agent_flow.llms import create_pydantic_azure_openai
 from voice_agent_flow.runner import AgentRunner
 
 
-model = create_pydantic_azure_openai()
+model = create_pydantic_azure_openai('gpt-4o-mini')
 
 instruction = """
 You are a restaurant reservation agent, you help customer to make a reservation at a restaurant.

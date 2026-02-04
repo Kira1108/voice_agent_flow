@@ -50,5 +50,30 @@ class VehicleLiscenceUnderControl(BaseModel):
     is_under_control: bool = Field(..., description = 'Whether the vehicle liscence is under the customer\'s control')
     
     def transfer(self) -> str:
+        return "agree_wechat_add"
+
+
+class AgreeToAddWechatAccount(BaseModel):
+    """Whether the customer agree to add wechat account for further contact.
+    If the customer agree to add wechat account, create AgreeToAddWechatAccount(agree=True).
+    If the customer refuse to add wechat account, create AgreeToAddWechatAccount(agree=False).
+    """
+    agree: bool = Field(..., description = 'Whether the customer agree to add wechat account')
+    
+    
+    def transfer(self) -> str:
+        return "ask_wechat_id"
+    
+    
+class WeChatId(BaseModel):
+    """The WeChat ID provided by the customer for further contact.
+    Example:
+        Customer Service Representative: "请问您的微信号是多少？"
+        Customer: "我的微信号是abc123" -> create WeChatId(wechat_id="abc123")
+    """
+    wechat_id: str = Field(..., description = 'The WeChat ID provided by the customer')
+    
+    
+    def transfer(self) -> str:
         print("All tasks completed.")
         return 'end'

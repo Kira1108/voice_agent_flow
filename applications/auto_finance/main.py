@@ -2,15 +2,19 @@ from task_cls import (
     CustomerName,
     FinancialSupportStatus,
     VehicleNotUnderRepayment, 
-    VehicleLiscenceUnderControl
+    VehicleLiscenceUnderControl,
+    AgreeToAddWechatAccount,
+    WeChatId,
+    
 )
 
 from voice_agent_flow.node import AgentNode
 from voice_agent_flow.llms import create_pydantic_azure_openai
+from voice_agent_flow.llms import create_ollama_model
 
 from voice_agent_flow.runner import AgentRunner
 
-model = create_pydantic_azure_openai()
+model = create_pydantic_azure_openai('gpt-4o-mini')
 
 instruction = """
 You are a customer service representative in a auto finance company. You task is to talk with customer via telephone to collection information.
@@ -22,6 +26,8 @@ Overall Conversation Policy: For yes or not question, if the customer's response
 Then create the schema with the corresponding fields filled.
 
 Note you are part of a multi-agent system, do not add additional explaination, greeting or closing statement, just focus on collecting information to fill the schema.
+Do not Generate Structured output until you have collected information defined by the schema. Before that ,you shoule chat with the customer.
+
 """
 
 agents = {
@@ -51,7 +57,6 @@ agents = {
         step_instruction="Ask the customer whether the vehicle is already fully paid off.",
         examples=["请问您的车辆目前是已经还清贷款了吗？"],
         ),
-    
     "vehicle_liscence_under_control": AgentNode(
         name="vehicle_liscence_under_control",
         model=model,
@@ -59,16 +64,35 @@ agents = {
         task_cls= VehicleLiscenceUnderControl,
         step_instruction="Ask the customer whether the vehicle liscence is under the customer's control.",
         examples=["请问您的车辆行驶证现在是在您本人手上吗？"],
-        
+        ),
+    
+    "agree_wechat_add": AgentNode(
+        name="agree_wechat_add",
+        model=model,
+        instruction=instruction,
+        step_instruction="Ask the customer whether he/she agree to add wechat account for further contact.",
+        task_cls= AgreeToAddWechatAccount,
+        examples=["为了方便后续联系，您是否同意添加我们的微信账号？"],
+        ),
+    
+    "ask_wechat_id": AgentNode(
+        name="ask_wechat_id",
+        model=model,
+        instruction=instruction,
+        step_instruction="Ask the customer for his/her wechat id.",
+        task_cls= WeChatId,
+        examples=["请问您的微信号是多少？"],
         ),
 }
+
+
 
     
 runner = AgentRunner(
     agents=agents, 
-    entry_agent_name="customer_name_inquiry"
-)
-    
+    entry_agent_name="customer_name_inquiry",
+    ending_message="好的，我们稍后会加您的微信，请你注意在服务通知后查看我们的企业微信请求，再见！"
+)  
             
 if __name__ == "__main__":
     customer_utterances = [
@@ -77,7 +101,9 @@ if __name__ == "__main__":
         "再说一次，你说啥？",
         "哦哦，我有需求",
         "还清了",
-        "在手上"  
+        "在手上" ,
+        "可以",
+        "liushaoshan123"
     ]
     
     for idx, utterance in enumerate(customer_utterances):
@@ -86,4 +112,5 @@ if __name__ == "__main__":
         response = runner.run(utterance)
         print("Agent:", response)
         
+    print("-"*30, "Collected Information", "-"*30)
     print(runner.show_information())
