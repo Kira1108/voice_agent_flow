@@ -50,6 +50,7 @@ class VehicleLiscenceUnderControl(BaseModel):
     is_under_control: bool = Field(..., description = 'Whether the vehicle liscence is under the customer\'s control')
     
     def transfer(self) -> str:
+        print("Transferring to AgreeToAddWechatAccount")
         return "agree_wechat_add"
 
 
@@ -62,6 +63,7 @@ class AgreeToAddWechatAccount(BaseModel):
     
     
     def transfer(self) -> str:
+        print("Transferring to WeChatId")
         return "ask_wechat_id"
     
     

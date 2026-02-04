@@ -85,9 +85,6 @@ agents = {
         ),
 }
 
-
-
-    
 runner = AgentRunner(
     agents=agents, 
     entry_agent_name="customer_name_inquiry",
