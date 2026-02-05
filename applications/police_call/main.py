@@ -17,14 +17,25 @@ You are a police call center agent(working at 110). You task is to talk with cal
 You resopnse should be berief and direct to the point.
 """
 
+
+def location_reachable_on_map(location: str) -> bool:
+    """Search if the location is reachable on map."""
+    return True
+
 agents = {
     "police_call_basic_info": AgentNode(
         name="police_call_basic_info",
         model=model,
         instruction=instruction,
         task_cls= PoliceCallBasicInfo,
-        step_instruction="Collect basic information about the police call including case location, case type, description and caller name. ask the question one at a time, do not ask multiple questions in one message.",
+        step_instruction=(
+            "Collect basic information about the police call including case location, case type, description and caller name.) "
+            "ask the question one at a time, do not ask multiple questions in one message."
+            "When caller told you the location, make sure to call the tool to check if the location is reachable on map."
+            "If the location is not reachable, ask the caller to provide more details about the location."
+        ),
         examples=["请问您遇到什么紧急情况？ / 发生在哪里？/ 能简单描述一下吗？/ 您的姓名是？"],
+        tools = [location_reachable_on_map],
         ),
     "safety_suggestion": AgentNode(
         name="safety_suggestion",
