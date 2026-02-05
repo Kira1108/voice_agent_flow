@@ -81,6 +81,10 @@ class AgentRunner:
             raise ValueError("Unsupported output type from agent.")
         
     
+    async def run_stream(self, input_text:str):
+        pass
+        
+    
     def show_information(self):
         objs = self.collected_information
         return [obj.model_dump() for obj in objs]
