@@ -72,9 +72,13 @@ Handler Matrix:
 │ AgentRunResultEvent │ output is BaseModel  │ _handle_agent_run_result│
 └─────────────────────┴──────────────────────┴─────────────────────────┘
 """
+import logging
+logging.basicConfig(level=logging.INFO)
+
+from typing import AsyncGenerator
 
 import asyncio
-import logging
+
 
 from pydantic_ai import (Agent, AgentRunResult, AgentRunResultEvent,
                          AgentStreamEvent, FinalResultEvent,
@@ -100,7 +104,6 @@ from events import (
 from pydantic_core import to_jsonable_python
 
 from pydantic import BaseModel
-
 
 is_part_start = lambda event: isinstance(event, PartStartEvent)
 is_tool_arg_start =  lambda event: isinstance(event.part, ToolCallPart)
@@ -154,18 +157,24 @@ class AgentRunner:
             (lambda e: is_agent_run_result(e) and is_pydantic_model(e.result.output), self.on_agent_run_result)
         ]
         
-    async def run(self, prompt: str):
+        
+    async def run(self, prompt: str) -> AsyncGenerator[AgentResult, None]:
+        
         self.final_result = False
         
         async for event in self.agent.run_stream_events(prompt):
-            e = await self.handle_event(event)   
+            e = await self.handle_event(event)  
+            
+            if not isinstance(e, AgentResult):
+                continue
+             
             if e is not None:
                 yield e 
     
     
-    async def on_tool_arg_start(self, event):
+    async def on_tool_arg_start(self, event:PartStartEvent):
         """When the models started to generate tool call request."""
-        print("呃, 稍等我想下啊。")
+        logging.info("呃, 稍等我想下啊。")
         return AgentResult(
             event = ToolCallsOutputStart(
                 message = to_jsonable_python(event.part)
@@ -174,7 +183,7 @@ class AgentRunner:
         )
    
    
-    async def on_text_start(self, event):
+    async def on_text_start(self, event:PartStartEvent):
         """When the model starts to generate text response."""
         return AgentResult(
             event = AgentTextStream(
@@ -184,7 +193,7 @@ class AgentRunner:
         )
 
     
-    async def on_text_delta(self, event):
+    async def on_text_delta(self, event:PartDeltaEvent):
         """When the model is generating text response."""
         return AgentResult(
             event = AgentTextStream(
@@ -194,7 +203,7 @@ class AgentRunner:
         )
         
         
-    async def on_tool_call_args(self, event):
+    async def on_tool_call_args(self, event:FunctionToolCallEvent):
         """When the framework is calling a tool."""
 
         return AgentResult(
@@ -205,7 +214,7 @@ class AgentRunner:
         )
 
     
-    async def on_tool_result(self, event):
+    async def on_tool_result(self, event:FunctionToolResultEvent):
         """When the framework receives the result from a tool."""
         
         return AgentResult(
@@ -215,7 +224,7 @@ class AgentRunner:
             event_type = EventType.ToolCallResult
         )
         
-    async def on_agent_run_result(self, event):
+    async def on_agent_run_result(self, event:AgentRunResultEvent):
         """if the final output is a pydantic model, return it, otherwise return None. because the text output has been streamed in delta."""
         
         return AgentResult(
@@ -226,23 +235,23 @@ class AgentRunner:
         )
         
         
-    async def on_final_result(self, event):
+    async def on_final_result(self, event:FinalResultEvent):
         """When the model finishes generating the final result."""
         self.final_result = True
         return None
          
          
-    async def on_tool_arg_end(self, event):
+    async def on_tool_arg_end(self, event:PartEndEvent):
         """When the model finishes generating tool call arguments."""
         return event
     
     
-    async def on_text_end(self, event):
+    async def on_text_end(self, event:PartEndEvent):
         """When the model finishes generating text response."""
         return event
     
     
-    async def on_tool_arg_delta(self, event):
+    async def on_tool_arg_delta(self, event:PartDeltaEvent):
         """When the model is generating tool call arguments."""
         return event
     
@@ -252,7 +261,7 @@ class AgentRunner:
             if condition(event):
                 return await handler(event)
             
-        self.logger.info(f'Unhandled event: {str(event)}')
+        # self.logger.info(f'Unhandled event: {str(event)}')
         return None
             
 
@@ -295,7 +304,7 @@ if __name__ == "__main__":
     runner = AgentRunner(agent)
 
     async def run_one_turn(query):
-        
+        print(f"\n=== Running query: {query} ===")
         no_text = True
         
         async for event in runner.run(query):
