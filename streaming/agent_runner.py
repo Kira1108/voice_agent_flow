@@ -158,11 +158,13 @@ class AgentRunner:
         ]
         
         
-    async def run(self, prompt: str) -> AsyncGenerator[AgentResult, None]:
+    async def run(self, prompt: str = None, message_history:list = None) -> AsyncGenerator[AgentResult, None]:
         
         self.final_result = False
         
-        async for event in self.agent.run_stream_events(prompt):
+        async for event in self.agent.run_stream_events(
+            prompt, message_history=message_history):
+            
             e = await self.handle_event(event)  
             
             if not isinstance(e, AgentResult):
