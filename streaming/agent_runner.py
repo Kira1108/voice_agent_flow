@@ -1,21 +1,46 @@
 """
-Why I have to map the original pydantic_ai events to my own event schema?
-Because I already have a voice agent framework, this framework handles events defined by the events package.
-To integrate with the framework, I need to convert the events from pydantic_ai into the events defined in my framework, 
-so that the rest of the framework can handle them properly.
+Voice Agent Event Adapter for pydantic_ai
 
-Next step, I don't want to pass only a query(current turn) to the agent.
-The agent frameworks often handle memory internally, the new query is added to the memory automatically.
-However, in the voice agent scenario, there are several differences.
-1. The genration speed is faster than tts playback speed. Only what user hears shoule be added to the memory.
-    When interruption is enabled, the user may stop the agent's response in the middle, at this time, the text agent is unaware of the actual response.
-    
-2. When a new user query comes in while text is generating. The new query should not be added to the memory until the agent finishes the current response(interrupted or finished playing)
-    Then the user utterance shouledbe added following the agent response in the memory, say... finalizing current agent utterance first, then add the user query.
-    
-In these schenaios, both the order and content might be different from the original agent framework.
+This module bridges pydantic_ai's streaming events to our voice agent framework's event schema.
 
-So, voice agent shoule manage chatting history and memory in the voice agent framework rather than the text agent framework.
+Why Map Events?
+---------------
+Our voice agent framework has its own event system (defined in the `events` package).
+To integrate pydantic_ai, we translate its native events into our framework's events,
+allowing the rest of the pipeline (TTS, interruption handling, etc.) to work seamlessly.
+
+Why External Memory Management?
+-------------------------------
+Traditional text agent frameworks manage conversation history internally—each new query
+is automatically appended to memory. However, voice agents have unique requirements:
+
+1. **Partial Playback**: LLM generation is faster than TTS playback. When a user interrupts,
+   only the *actually heard* portion should be committed to memory, not the full generated text.
+
+2. **Turn Ordering**: If a new user query arrives mid-generation, we must:
+   - Finalize the current (possibly truncated) assistant response first
+   - Then append the new user utterance
+   
+   This ensures memory reflects the *actual conversation* as experienced by the user.
+
+Architecture Decision
+---------------------
+The voice agent framework owns conversation history. The text agent (pydantic_ai) is treated
+as a stateless generation service—we pass it the full, externally-managed history on each turn.
+
+    ┌──────────────────────────────────────┐
+    │  Voice Agent Framework (this module) │
+    │  - Manages true conversation state   │
+    │  - Tracks what user actually heard   │
+    │  - Handles interruptions & ordering  │
+    └──────────────────┬───────────────────┘
+                       │ passes history
+                       ▼
+    ┌──────────────────────────────────────┐
+    │  pydantic_ai Agent (stateless)       │
+    │  - Generates responses               │
+    │  - Executes tools                    │
+    └──────────────────────────────────────┘
 """
 
 import asyncio
