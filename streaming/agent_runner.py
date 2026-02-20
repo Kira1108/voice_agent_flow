@@ -307,8 +307,8 @@ if __name__ == "__main__":
         async for event in runner.run(query):
             
             # handle structured output events.
-            # if not isinstance(event, AgentResult):
-            #     continue
+            if not isinstance(event, AgentResult):
+                continue
             
             # add text stream to context / pending responses
             if isinstance(event.event, AgentTextStream):
