@@ -41,6 +41,36 @@ as a stateless generation service—we pass it the full, externally-managed hist
     │  - Generates responses               │
     │  - Executes tools                    │
     └──────────────────────────────────────┘
+    
+    
+Event Handler Reference
+-----------------------
+pydantic_ai emits various streaming events. Below is the full handler mapping,
+though not all handlers are active in every configuration.
+
+Event Types:
+  - PartStartEvent  : A new part (text/tool call) begins
+  - PartDeltaEvent  : Incremental content for an in-progress part  
+  - PartEndEvent    : A part completes
+  - FunctionToolCallEvent  : Tool is being invoked
+  - FunctionToolResultEvent: Tool returned a result
+  - FinalResultEvent: Generation complete
+
+Handler Matrix:
+┌─────────────────────┬──────────────────────┬─────────────────────────┐
+│ Event               │ Condition            │ Handler                 │
+├─────────────────────┼──────────────────────┼─────────────────────────┤
+│ PartStartEvent      │ ToolCallPart         │ _handle_tool_arg_start  │
+│ PartStartEvent      │ TextPart             │ _handle_text_start      │
+│ PartDeltaEvent      │ TextPartDelta        │ _handle_text_delta      │
+│ PartDeltaEvent      │ ToolCallPartDelta    │ _handle_tool_arg_delta  │
+│ PartEndEvent        │ ToolCallPart         │ _handle_tool_arg_end    │
+│ PartEndEvent        │ TextPart             │ _handle_text_end        │
+│ FunctionToolCall    │ -                    │ _handle_tool_call       │
+│ FunctionToolResult  │ -                    │ _handle_tool_result     │
+│ FinalResultEvent    │ -                    │ _handle_final_result    │
+│ AgentRunResultEvent │ output is BaseModel  │ _handle_agent_run_result│
+└─────────────────────┴──────────────────────┴─────────────────────────┘
 """
 
 import asyncio
@@ -71,42 +101,6 @@ from pydantic_core import to_jsonable_python
 
 from pydantic import BaseModel
 
-"""
-Handling agent streaming events is complex, since the sequence of events can be various, and the definition of varies with the model, agent fraworks and tool types.
-
-A list of example hanlers are as follows.
-
-full event handler definitions = [
-        
-    # Part start events
-    (lambda e: is_part_start(e) and is_tool_arg_start(e), 
-        self._handle_tool_arg_start),
-    
-    (lambda e: is_part_start(e) and is_text_start(e), 
-        self._handle_text_start),
-    
-    # Delta events
-    (lambda e: is_delta(e) and is_tool_arg_delta(e), 
-        self._handle_tool_arg_delta),
-    
-    (lambda e: is_delta(e) and is_text_delta(e), 
-        self._handle_text_delta),
-    
-    # Part end events
-    (lambda e: is_part_end(e) and is_tool_arg_end(e), 
-        self._handle_tool_arg_end),
-    
-    (lambda e: is_part_end(e) and is_text_end(e), 
-        self._handle_text_end),
-    
-    # Tool events
-    (is_function_tool_call_args, self._handle_tool_call),
-    (is_function_tool_result, self._handle_tool_result),
-    
-    # Final result
-    (is_final_result, self._handle_final_result),
-]
-"""
 
 is_part_start = lambda event: isinstance(event, PartStartEvent)
 is_tool_arg_start =  lambda event: isinstance(event.part, ToolCallPart)
@@ -144,20 +138,20 @@ class AgentRunner:
         
         self._event_handlers = [
             (lambda e: is_part_start(e) and is_tool_arg_start(e), 
-             self._handle_tool_arg_start),
+             self.on_tool_arg_start),
             
             (lambda e: is_part_start(e) and is_text_start(e), 
-             self._handle_text_start),
+             self.on_text_start),
             
             (lambda e: is_delta(e) and is_text_delta(e), 
-             self._handle_text_delta),
+             self.on_text_delta),
             
-            (is_function_tool_call_args, self._handle_tool_call),
-            (is_function_tool_result, self._handle_tool_result),
+            (is_function_tool_call_args, self.on_tool_call_args),
+            (is_function_tool_result, self.on_tool_result),
             
-            (is_final_result, self._handle_final_result),
+            (is_final_result, self.on_final_result),
             
-            (lambda e: is_agent_run_result(e) and is_pydantic_model(e.result.output), self._handle_agent_run_result)
+            (lambda e: is_agent_run_result(e) and is_pydantic_model(e.result.output), self.on_agent_run_result)
         ]
         
     async def run(self, prompt: str):
@@ -169,7 +163,7 @@ class AgentRunner:
                 yield e 
     
     
-    async def _handle_tool_arg_start(self, event):
+    async def on_tool_arg_start(self, event):
         """When the models started to generate tool call request."""
         print("呃, 稍等我想下啊。")
         return AgentResult(
@@ -180,7 +174,7 @@ class AgentRunner:
         )
    
    
-    async def _handle_text_start(self, event):
+    async def on_text_start(self, event):
         """When the model starts to generate text response."""
         return AgentResult(
             event = AgentTextStream(
@@ -190,7 +184,7 @@ class AgentRunner:
         )
 
     
-    async def _handle_text_delta(self, event):
+    async def on_text_delta(self, event):
         """When the model is generating text response."""
         return AgentResult(
             event = AgentTextStream(
@@ -200,7 +194,7 @@ class AgentRunner:
         )
         
         
-    async def _handle_tool_call(self, event):
+    async def on_tool_call_args(self, event):
         """When the framework is calling a tool."""
 
         return AgentResult(
@@ -211,7 +205,7 @@ class AgentRunner:
         )
 
     
-    async def _handle_tool_result(self, event):
+    async def on_tool_result(self, event):
         """When the framework receives the result from a tool."""
         
         return AgentResult(
@@ -221,7 +215,7 @@ class AgentRunner:
             event_type = EventType.ToolCallResult
         )
         
-    async def _handle_agent_run_result(self, event):
+    async def on_agent_run_result(self, event):
         """if the final output is a pydantic model, return it, otherwise return None. because the text output has been streamed in delta."""
         
         return AgentResult(
@@ -232,23 +226,23 @@ class AgentRunner:
         )
         
         
-    async def _handle_final_result(self, event):
+    async def on_final_result(self, event):
         """When the model finishes generating the final result."""
         self.final_result = True
         return None
          
          
-    async def _handle_tool_arg_end(self, event):
+    async def on_tool_arg_end(self, event):
         """When the model finishes generating tool call arguments."""
         return event
     
     
-    async def _handle_text_end(self, event):
+    async def on_text_end(self, event):
         """When the model finishes generating text response."""
         return event
     
     
-    async def _handle_tool_arg_delta(self, event):
+    async def on_tool_arg_delta(self, event):
         """When the model is generating tool call arguments."""
         return event
     
@@ -273,7 +267,7 @@ if __name__ == "__main__":
         age:int
         
         def transfer(self):
-            print("\n‼️ I want to transfer to the next step.")
+            print("\n⚾️ I want to transfer to the next step.")
         
         
     def weather_tool(location: str, credential = "3234980988908333498") -> str:
@@ -317,20 +311,20 @@ if __name__ == "__main__":
                     continue
                 
                 if no_text:
-                    print("\n‼️ Agent starts to generate text:")
+                    print("\n⚾️ Agent starts to generate text:")
                 print(event.event.delta, end='', flush=True)
                 no_text = False
                 continue
             
             if isinstance(event.event, StructuredOutput):
-                print("\n‼️ Found structured output:")
+                print("\n⚾️ Found structured output:")
                 print(event.event.message)
                 if hasattr(event.event.message, 'transfer'):
                     event.event.message.transfer()
             
             # add tool history to memory
             else:
-                print("\n‼️ New Event:")
+                print("\n⚾️ New Event:")
                 print(event)
             
     print("\n=== Test tool call query ===")
