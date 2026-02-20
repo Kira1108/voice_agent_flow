@@ -1,3 +1,23 @@
+"""
+Why I have to map the original pydantic_ai events to my own event schema?
+Because I already have a voice agent framework, this framework handles events defined by the events package.
+To integrate with the framework, I need to convert the events from pydantic_ai into the events defined in my framework, 
+so that the rest of the framework can handle them properly.
+
+Next step, I don't want to pass only a query(current turn) to the agent.
+The agent frameworks often handle memory internally, the new query is added to the memory automatically.
+However, in the voice agent scenario, there are several differences.
+1. The genration speed is faster than tts playback speed. Only what user hears shoule be added to the memory.
+    When interruption is enabled, the user may stop the agent's response in the middle, at this time, the text agent is unaware of the actual response.
+    
+2. When a new user query comes in while text is generating. The new query should not be added to the memory until the agent finishes the current response(interrupted or finished playing)
+    Then the user utterance shouledbe added following the agent response in the memory, say... finalizing current agent utterance first, then add the user query.
+    
+In these schenaios, both the order and content might be different from the original agent framework.
+
+So, voice agent shoule manage chatting history and memory in the voice agent framework rather than the text agent framework.
+"""
+
 import asyncio
 import logging
 
@@ -126,7 +146,7 @@ class AgentRunner:
     
     async def _handle_tool_arg_start(self, event):
         """When the models started to generate tool call request."""
-        
+        print("呃, 稍等我想下啊。")
         return AgentResult(
             event = ToolCallsOutputStart(
                 message = to_jsonable_python(event.part)
@@ -240,12 +260,18 @@ if __name__ == "__main__":
     
 
     model = create_pydantic_azure_openai(model_name = "gpt-4.1")
-
-    agent = Agent(model, tools = [weather_tool], instructions = (
-        "You are a helpful assistant. you chat with users friendly"
+    
+    # this is the actual agent definition.
+    agent = Agent(
+        model, 
+        tools = [weather_tool],
+        instructions = (
+        "You are a helpful assistant. you chat with users friendly."
         "When user asks questions about weather, do call the weather tool to get the weather information, and give suggestions on clothing based on the weather. "
-        "When user mentions any person with name and age, you extract the name and age, return a json object defined by `Person` schema"
-    ), output_type = str | Person)
+        "When user mentions any person with name and age, you extract the name and age, return a json object defined by `Person` schema."
+        "Reply in Chinese."
+        ""),
+        output_type = str | Person)
 
     runner = AgentRunner(agent)
 
