@@ -18,11 +18,13 @@ from events import (
     ToolCallResult,
     AgentTextOutput,
     AgentResult,
-    EventType
+    EventType,
+    StructuredOutput
 )
 
 from pydantic_core import to_jsonable_python
 
+from pydantic import BaseModel
 
 """
 Handling agent streaming events is complex, since the sequence of events can be various, and the definition of varies with the model, agent fraworks and tool types.
@@ -79,6 +81,7 @@ is_function_tool_result = lambda event: isinstance(event, FunctionToolResultEven
 is_final_result = lambda event: isinstance(event, FinalResultEvent)
 
 is_agent_run_result = lambda event: isinstance(event, AgentRunResultEvent)
+is_pydantic_model = lambda obj: isinstance(obj, BaseModel)
 
 
 class AgentRunner:
@@ -108,6 +111,8 @@ class AgentRunner:
             (is_function_tool_result, self._handle_tool_result),
             
             (is_final_result, self._handle_final_result),
+            
+            (lambda e: is_agent_run_result(e) and is_pydantic_model(e.result.output), self._handle_agent_run_result)
         ]
         
     async def run(self, prompt: str):
@@ -138,12 +143,7 @@ class AgentRunner:
             ),
             event_type = EventType.AgentTextStream
         )
-    
-    
-    async def _handle_tool_arg_delta(self, event):
-        """When the model is generating tool call arguments."""
-        return event
-    
+
     
     async def _handle_text_delta(self, event):
         """When the model is generating text response."""
@@ -153,17 +153,8 @@ class AgentRunner:
             ),
             event_type = EventType.AgentTextStream
         )
-         
-    async def _handle_tool_arg_end(self, event):
-        """When the model finishes generating tool call arguments."""
-        return event
-    
-    
-    async def _handle_text_end(self, event):
-        """When the model finishes generating text response."""
-        return event
-    
-    
+        
+        
     async def _handle_tool_call(self, event):
         """When the framework is calling a tool."""
 
@@ -184,13 +175,38 @@ class AgentRunner:
             ),
             event_type = EventType.ToolCallResult
         )
-    
-    
+        
+    async def _handle_agent_run_result(self, event):
+        """if the final output is a pydantic model, return it, otherwise return None. because the text output has been streamed in delta."""
+        
+        return AgentResult(
+            event = StructuredOutput(
+                message = event.result.output
+            ),
+            event_type = EventType.StructuredOutput
+        )
+        
+        
     async def _handle_final_result(self, event):
         """When the model finishes generating the final result."""
         self.final_result = True
         return None
-     
+         
+         
+    async def _handle_tool_arg_end(self, event):
+        """When the model finishes generating tool call arguments."""
+        return event
+    
+    
+    async def _handle_text_end(self, event):
+        """When the model finishes generating text response."""
+        return event
+    
+    
+    async def _handle_tool_arg_delta(self, event):
+        """When the model is generating tool call arguments."""
+        return event
+    
      
     async def handle_event(self, event):
         for condition, handler in self._event_handlers:
@@ -205,29 +221,47 @@ class AgentRunner:
 if __name__ == "__main__":
 
     import time
+    from pydantic import BaseModel
+    
+    class Person(BaseModel):
+        name:str
+        age:int
+        
+        def transfer(self):
+            print("\n‼️ I want to transfer to the next step.")
+        
+        
     def weather_tool(location: str, credential = "3234980988908333498") -> str:
         """Search the weather for a location."""
         return f"The weather in {location} is snowing, the temperature will be below -5 degrees Celsius."
+    
+    tool_call_query = 'What is the weather in New York City?'
+    name_query = "My name is wanghuan, 32 years old."
+    
 
     model = create_pydantic_azure_openai(model_name = "gpt-4.1")
 
-    agent = Agent(model, tools = [weather_tool])
+    agent = Agent(model, tools = [weather_tool], instructions = (
+        "You are a helpful assistant. you chat with users friendly"
+        "When user asks questions about weather, do call the weather tool to get the weather information, and give suggestions on clothing based on the weather. "
+        "When user mentions any person with name and age, you extract the name and age, return a json object defined by `Person` schema"
+    ), output_type = str | Person)
 
     runner = AgentRunner(agent)
 
-    async def main():
+    async def run_one_turn(query):
         
         no_text = True
         
-        async for event in runner.run('What is the weather in New York City?, when calling the tool, you can use credential: 3234980988908333498, give some suggestions on clothing based on the weather.'):
+        async for event in runner.run(query):
             
             # handle structured output events.
-            if not isinstance(event, AgentResult):
-                continue
+            # if not isinstance(event, AgentResult):
+            #     continue
             
             # add text stream to context / pending responses
             if isinstance(event.event, AgentTextStream):
-                time.sleep(0.01)
+                time.sleep(0.05)
                 if event.event.delta is None or event.event.delta == "":
                     continue
                 
@@ -237,10 +271,19 @@ if __name__ == "__main__":
                 no_text = False
                 continue
             
+            if isinstance(event.event, StructuredOutput):
+                print("\n‼️ Found structured output:")
+                print(event.event.message)
+                if hasattr(event.event.message, 'transfer'):
+                    event.event.message.transfer()
+            
             # add tool history to memory
             else:
                 print("\n‼️ New Event:")
                 print(event)
             
+    print("\n=== Test tool call query ===")
+    asyncio.run(run_one_turn(tool_call_query))
 
-    asyncio.run(main())
+    print("\n\n=== Test name query ===")
+    asyncio.run(run_one_turn(name_query))

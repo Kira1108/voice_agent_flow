@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict, Optional
+from pydantic import BaseModel
 
 @dataclass
 class EventType:
@@ -11,6 +12,7 @@ class EventType:
     InferenceFinish: str = 'InferenceFinish'
     AgentHandoff: str = 'AgentHandoff'
     OtherType: str = ''
+    StructuredOutput: str = 'StructuredOutput'
 
 @dataclass
 class AgentEvent:
@@ -39,6 +41,10 @@ class ToolCallResult(AgentEvent):
 @dataclass
 class AgentTextOutput(AgentEvent):
     message: Dict = None
+    
+@dataclass
+class StructuredOutput(AgentEvent):
+    message: BaseModel = None
 
 @dataclass
 class AgentResult:
