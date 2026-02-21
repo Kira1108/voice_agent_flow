@@ -1,1 +1,0 @@
-from .pydantic_adaptor import pmsg

@@ -12,7 +12,7 @@ from pydantic_ai import (Agent, AgentRunResult, AgentRunResultEvent,
 
 from voice_agent_flow.llms import create_pydantic_azure_openai
 
-from events import (
+from voice_agent_flow.agents.events import (
     AgentTextStream,
     ToolCallsOutputStart,
     ToolCallsOutput,
