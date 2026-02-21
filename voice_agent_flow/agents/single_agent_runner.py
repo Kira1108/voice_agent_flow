@@ -129,7 +129,7 @@ class SingleAgentRunner:
     
     def __init__(
         self, 
-        agent, 
+        agent:Agent, 
         logger:logging.Logger = None
     ):
         
@@ -156,7 +156,9 @@ class SingleAgentRunner:
             (lambda e: is_agent_run_result(e) and is_pydantic_model(e.result.output), self.on_agent_run_result)
         ]
         
-        
+    def set_agent(self, agent: Agent):
+        self.agent = agent  
+    
     async def run(self, 
                 prompt: str = None, 
                 message_history:list = None) -> AsyncGenerator[AgentResult, None]:
