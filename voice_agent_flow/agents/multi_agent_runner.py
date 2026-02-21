@@ -1,5 +1,4 @@
 from __future__ import annotations
-import logging
 from typing import Any, AsyncGenerator, Dict
 
 from pydantic_ai import Agent
@@ -15,7 +14,6 @@ class MultiAgentRunner:
         agents: Dict[str, AgentNode],
         entry_agent_name: str,
         ending_message: str | None = None,
-        max_iter: int = 3,
     ):
         # multi-agent container and cache
         self.agents = agents
@@ -28,7 +26,6 @@ class MultiAgentRunner:
         self.runner = SingleAgentRunner(agent=self.current_agent)
 
         self.agent_state: dict = {}
-        self.max_iter = max_iter
         self.ending_message = ending_message
 
     def get_agent(self, name: str) -> Agent:
@@ -36,66 +33,44 @@ class MultiAgentRunner:
             agent_node = self.agents[name]
             self._agent_cache[name] = agent_node.create()
         return self._agent_cache[name]
-    
+
     async def run(
         self,
         prompt: str | None = None,
         message_history: list | None = None,
     ) -> AsyncGenerator[AgentResult, None]:
-        async for event in self._run_recursive(
-            prompt=prompt,
-            message_history=message_history,
-            iter_idx=0,
-        ):
-            yield event
-
-    async def _run_recursive(
-        self,
-        prompt: str | None = None,
-        message_history: list | None = None,
-        iter_idx: int = 0,
-    ) -> AsyncGenerator[AgentResult, None]:
-        """Run one agent turn and recursively continue when handoff is required."""
-
-        if iter_idx >= self.max_iter:
-            logging.info(f"Reached max iteration {self.max_iter}. Ending run.")
-            return
-
-        handoff_target: str | None = None
-
-        async for event in self.runner.run(
+        """
+        Run only one turn.
+        If StructuredOutput indicates handoff, switch agent and stop.
+        Voice layer is responsible for rebuilding message_history and triggering next turn.
+        """
+        async for result in self.runner.run(
             prompt=prompt,
             message_history=message_history,
         ):
-            if not isinstance(event, StructuredOutput):
-                yield event
+            # 普通事件：直接透传
+            if not isinstance(result.event, StructuredOutput):
+                yield result
                 continue
 
-            output = event.message
+            # StructuredOutput 作为控制信号
+            output = result.event.message
             handoff_target = self._extract_handoff_target(output)
 
-            # No handoff requested, current run is complete.
+            # 无 handoff：本轮正常结束
             if handoff_target is None:
-                yield event
+                yield result
                 return
 
-            # Handoff requested: switch current agent and continue recursively.
-            agent = self.get_agent(handoff_target)
-            self.current_agent = agent
-            self.runner.set_agent(agent)
+            # 有 handoff：切换当前 agent，透传 signal，停止当前轮
+            self.current_agent = self.get_agent(handoff_target)
+            self.runner.set_agent(self.current_agent)
 
             if hasattr(output, "model_dump"):
                 self.agent_state.update(output.model_dump())
 
-            break
-
-        if handoff_target is not None:
-            async for event in self._run_recursive(
-                prompt=prompt,
-                message_history=message_history,
-                iter_idx=iter_idx + 1,
-            ):
-                yield event
+            yield result
+            return
 
     def _extract_handoff_target(self, output: Any) -> str | None:
         """Return target agent name if output requests handoff; otherwise None."""
@@ -108,13 +83,12 @@ class MultiAgentRunner:
             return target
 
         return None
-    
-    
 
-        
-    
-    
-    
-    
-    
-            
+
+
+
+
+
+
+
+
