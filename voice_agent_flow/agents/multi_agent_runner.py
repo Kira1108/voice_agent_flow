@@ -3,7 +3,7 @@ from typing import Any, AsyncGenerator, Dict
 
 from pydantic_ai import Agent
 
-from voice_agent_flow.agents.events import AgentResult, StructuredOutput
+from voice_agent_flow.agents.events import AgentResult, StructuredOutput, AgentTextStream, EventType
 from voice_agent_flow.agents.single_agent_runner import SingleAgentRunner
 from voice_agent_flow.node import AgentNode
 
@@ -60,6 +60,13 @@ class MultiAgentRunner:
             # 无 handoff：本轮正常结束
             if handoff_target is None:
                 yield result
+                return
+            
+            if handoff_target == "end":
+                yield AgentResult(
+                    event = AgentTextStream(delta=self.ending_message or "拜拜，流程结束"),
+                    event_type = EventType.AgentTextStream
+                )
                 return
 
             # 有 handoff：切换当前 agent，透传 signal，停止当前轮
