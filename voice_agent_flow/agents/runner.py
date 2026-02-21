@@ -177,7 +177,7 @@ class SingleAgentRunner:
     
     async def on_tool_arg_start(self, event:PartStartEvent):
         """When the models started to generate tool call request."""
-        logging.info("呃, 稍等我想下啊。")
+        logging.info("<[LLM Model]Tool call output started.>")
         return AgentResult(
             event = ToolCallsOutputStart(
                 message = to_jsonable_python(event.part)
