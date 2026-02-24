@@ -66,7 +66,12 @@ class MultiAgentRunner:
         handoff_target = self._extract_handoff_target(output)
 
         if handoff_target is None:
-            raise ValueError("AgentHandoff event does not specify a valid handoff target.(None)")
+            current_agent_name = getattr(self.current_agent, "name", "unknown")
+            output_type = type(output).__name__
+            raise RuntimeError(
+                "AgentHandoff protocol violation: transfer() returned None "
+                f"(current_agent='{current_agent_name}', output_type='{output_type}')."
+            )
 
         if handoff_target == "end":
             return AgentResult(
