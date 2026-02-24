@@ -44,7 +44,6 @@ class MultiAgentRunner:
         If StructuredOutput indicates handoff, switch agent and stop.
         Voice layer is responsible for rebuilding message_history and triggering next turn.
         """
-        print(f"Running agent: {self.current_agent.name}")
         async for result in self.runner.run(
             prompt=prompt,
             message_history=message_history,
