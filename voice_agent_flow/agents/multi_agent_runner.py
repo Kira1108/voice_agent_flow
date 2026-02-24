@@ -5,7 +5,7 @@ from pydantic_ai import Agent
 
 from voice_agent_flow.agents.events import AgentResult, StructuredOutput, AgentTextStream, EventType
 from voice_agent_flow.agents.single_agent_runner import SingleAgentRunner
-from voice_agent_flow.node import AgentNode
+from voice_agent_flow.agents.agent_node import AgentNode, HangUpNode, DoHangUp
 
 
 class MultiAgentRunner:
@@ -44,6 +44,7 @@ class MultiAgentRunner:
         If StructuredOutput indicates handoff, switch agent and stop.
         Voice layer is responsible for rebuilding message_history and triggering next turn.
         """
+        print(f"Running agent: {self.current_agent.name}")
         async for result in self.runner.run(
             prompt=prompt,
             message_history=message_history,
@@ -61,6 +62,11 @@ class MultiAgentRunner:
             if handoff_target is None:
                 yield result
                 return
+            
+            if isinstance(output, DoHangUp):
+                print("Flow Ended signal received...")
+                return 
+            
             
             if handoff_target == "end":
                 yield AgentResult(

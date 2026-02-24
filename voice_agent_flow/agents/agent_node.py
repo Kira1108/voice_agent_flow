@@ -88,3 +88,42 @@ class AgentNode:
             tools = self.tools
         )
 
+class DoHangUp(BaseModel):
+    '''Complete signal for hangup, no more conversation needed.
+    When the agent want to end the call actively, return this signal, a structured output to tell the system to end the call.
+    '''
+
+@dataclass
+class HangUpNode(AgentNode):
+    
+    name:str = "hangup"
+    model:OpenAIChatModel = None
+    instruction: str = (
+        "You are a voice agent responsible for handling phone call hangups.\n"
+        "Based on the conversation history, generate a polite and concise closing statement to end the call."
+        )
+    task_cls:BaseModel = DoHangUp
+    step_instruction:str = (
+        "First, generate a closing statement to indicate you are about the end call(You must include ‘goodbye’ or '再见' in the response message).\n"
+        "As soon as the user responds to the closing statement and there are no further questions or issues to address, "
+        "Create a structured output of type DoHangUp to signal that the call can be ended.\n",
+        "Examples are only for reference, pay attention to the context and gereate a proper closing statement message."
+        )
+    examples:list | str = field(
+        default_factory=lambda: [
+        '感谢您的接听，祝您生活愉快，再见。',
+        'Thank you for your time, goodbye.']
+        
+    )
+    tools: list = field(default_factory=list)
+    
+    def create(self) -> Agent:
+        return Agent(
+            name = self.name,
+            model = self.model,
+            output_type = self.task_cls | str,
+            instructions = self.full_instruction,
+            tools = self.tools
+        )
+        
+    
