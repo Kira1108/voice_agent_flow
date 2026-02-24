@@ -3,9 +3,10 @@ from typing import Any, AsyncGenerator, Dict
 
 from pydantic_ai import Agent
 
-from voice_agent_flow.agents.events import AgentResult, StructuredOutput, AgentTextStream, EventType, AgentHandoff,HangupSignal
+from voice_agent_flow.agents.events import (
+    AgentResult, AgentTextStream, EventType, AgentHandoff, HangupSignal)
 from voice_agent_flow.agents.single_agent_runner import SingleAgentRunner
-from voice_agent_flow.agents.agent_node import AgentNode, HangUpNode, DoHangUp
+from voice_agent_flow.agents.agent_node import AgentNode
 
 
 class MultiAgentRunner:
