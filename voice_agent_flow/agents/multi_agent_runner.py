@@ -67,7 +67,6 @@ class MultiAgentRunner:
                 print("Flow Ended signal received...")
                 return 
             
-            
             if handoff_target == "end":
                 yield AgentResult(
                     event = AgentTextStream(delta=self.ending_message or "拜拜，流程结束"),
