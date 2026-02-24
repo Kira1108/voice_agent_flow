@@ -117,13 +117,5 @@ class HangUpNode(AgentNode):
     )
     tools: list = field(default_factory=list)
     
-    def create(self) -> Agent:
-        return Agent(
-            name = self.name,
-            model = self.model,
-            output_type = self.task_cls | str,
-            instructions = self.full_instruction,
-            tools = self.tools
-        )
         
     
