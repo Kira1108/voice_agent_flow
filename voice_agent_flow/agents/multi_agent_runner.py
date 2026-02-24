@@ -91,6 +91,10 @@ class MultiAgentRunner:
             return None
 
         target = transfer()
+        
+        if target not in self.agents and target != "end":
+            raise ValueError(f"Handoff target '{target}' is not a valid agent or 'end'.")
+        
         if isinstance(target, str) and target:
             return target
 
