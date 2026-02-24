@@ -104,6 +104,17 @@ Handler Matrix:
 │ FinalResultEvent    │ -                    │ _handle_final_result    │
 │ AgentRunResultEvent │ output is BaseModel  │ _handle_agent_run_result│
 └─────────────────────┴──────────────────────┴─────────────────────────┘
+
+
+Transfer Protocol:
+-------------------
+A pydantic model with a `transfer` method is treated as a handoff signal to another agent. When such a model is returned, the framework will emit an `AgentHandoff` event,
+and the multi-agent runner will switch to the next agent as specified by the `transfer` method's return value.
+
+Hangup Protocol:
+----------------
+A pydantic model of type `DoHangUp` is treated as a signal to end the conversation. When such a model is returned, the framework will emit a `HangupSignal` event,
+which can be used by the voice layer to terminate the call gracefully.
 """
 
 
