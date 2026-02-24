@@ -58,7 +58,7 @@ class MultiAgentRunner:
                 
                 if handoff_target == "end":
                     yield AgentResult(
-                        event = AgentTextStream(delta=self.ending_message or "拜拜，流程结束"),
+                        event = AgentTextStream(delta=self.ending_message or "感谢您的接听，祝您生活愉快，再见！"),
                         event_type = EventType.AgentTextStream
                     )
                     return
@@ -84,42 +84,6 @@ class MultiAgentRunner:
             
             yield result
                 
-                
-            # # 普通事件：直接透传
-            # if not isinstance(result.event, StructuredOutput):
-            #     yield result
-            #     continue
-
-            # # StructuredOutput 作为控制信号
-            # output = result.event.message
-            # handoff_target = self._extract_handoff_target(output)
-
-            # # 无 handoff：本轮正常结束
-            # if handoff_target is None:
-            #     yield result
-            #     return
-            
-            # if isinstance(output, DoHangUp):
-            #     print("Flow Ended signal received...")
-            #     return 
-            
-            # if handoff_target == "end":
-            #     yield AgentResult(
-            #         event = AgentTextStream(delta=self.ending_message or "拜拜，流程结束"),
-            #         event_type = EventType.AgentTextStream
-            #     )
-            #     return
-
-            # # 有 handoff：切换当前 agent，透传 signal，停止当前轮
-            # self.current_agent = self.get_agent(handoff_target)
-            # self.runner.set_agent(self.current_agent)
-
-            # if hasattr(output, "model_dump"):
-            #     self.agent_state.update(output.model_dump())
-
-            # yield result
-            # return
-
     def _extract_handoff_target(self, output: Any) -> str | None:
         """Return target agent name if output requests handoff; otherwise None."""
         transfer = getattr(output, "transfer", None)
