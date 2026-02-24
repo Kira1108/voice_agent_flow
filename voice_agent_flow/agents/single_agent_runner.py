@@ -21,9 +21,12 @@ from voice_agent_flow.agents.events import (
     AgentTextOutput,
     AgentResult,
     EventType,
-    StructuredOutput
+    StructuredOutput,
+    HangupSignal
 )
 
+
+from .agent_node import DoHangUp
 from pydantic_core import to_jsonable_python
 
 from pydantic import BaseModel
@@ -137,7 +140,8 @@ class SingleAgentRunner:
         self.final_result = False
         self.logger = logger if logger else logging.getLogger(self.__class__.__name__)
     
-        
+        # the first element of the tuple is the condition to check if the handler should be called, the second element is the handler function.
+        # the strategy will be checked in order, which means if an event matches multiple conditions, only the first one will be called.
         self._event_handlers = [
             (lambda e: is_part_start(e) and is_tool_arg_start(e), 
              self.on_tool_arg_start),
@@ -179,7 +183,6 @@ class SingleAgentRunner:
     
     async def on_tool_arg_start(self, event:PartStartEvent):
         """When the models started to generate tool call request."""
-        logging.info("<[LLM Model]Tool call output started.>")
         return AgentResult(
             event = ToolCallsOutputStart(
                 message = to_jsonable_python(event.part)
@@ -190,6 +193,9 @@ class SingleAgentRunner:
    
     async def on_text_start(self, event:PartStartEvent):
         """When the model starts to generate text response."""
+        
+
+        
         return AgentResult(
             event = AgentTextStream(
                 delta = event.part.content
@@ -200,6 +206,8 @@ class SingleAgentRunner:
     
     async def on_text_delta(self, event:PartDeltaEvent):
         """When the model is generating text response."""
+ 
+        
         return AgentResult(
             event = AgentTextStream(
                 delta = event.delta.content_delta
@@ -229,16 +237,31 @@ class SingleAgentRunner:
             event_type = EventType.ToolCallResult
         )
         
+        
     async def on_agent_run_result(self, event:AgentRunResultEvent):
         """if the final output is a pydantic model, return it, otherwise return None. because the text output has been streamed in delta."""
+        output = event.result.output
+
+        if hasattr(output, "transfer") and callable(output.transfer):
+            return AgentResult(
+                event = AgentHandoff(
+                    message = output
+                ),
+                event_type = EventType.AgentHandoff
+            )
         
-        return AgentResult(
-            event = StructuredOutput(
-                message = event.result.output
-            ),
-            event_type = EventType.StructuredOutput
-        )
+        elif isinstance(output, DoHangUp):
+            return AgentResult(
+                event = HangupSignal(
+                    message = output
+                ),
+                event_type = EventType.HangupSignal
+            )
         
+        else:
+            # you have no reason to return a structured output in a voice agent.
+            return None
+            
         
     async def on_final_result(self, event:FinalResultEvent):
         """When the model finishes generating the final result."""

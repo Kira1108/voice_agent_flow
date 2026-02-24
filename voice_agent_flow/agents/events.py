@@ -13,6 +13,7 @@ class EventType:
     AgentHandoff: str = 'AgentHandoff'
     OtherType: str = ''
     StructuredOutput: str = 'StructuredOutput'
+    HangupSignal: str = 'HangupSignal'
 
 @dataclass
 class AgentEvent:
@@ -44,6 +45,10 @@ class AgentTextOutput(AgentEvent):
     
 @dataclass
 class StructuredOutput(AgentEvent):
+    message: BaseModel = None
+    
+@dataclass
+class HangupSignal(AgentEvent):
     message: BaseModel = None
 
 @dataclass

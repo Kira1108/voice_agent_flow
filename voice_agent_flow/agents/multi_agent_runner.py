@@ -3,7 +3,7 @@ from typing import Any, AsyncGenerator, Dict
 
 from pydantic_ai import Agent
 
-from voice_agent_flow.agents.events import AgentResult, StructuredOutput, AgentTextStream, EventType
+from voice_agent_flow.agents.events import AgentResult, StructuredOutput, AgentTextStream, EventType, AgentHandoff,HangupSignal
 from voice_agent_flow.agents.single_agent_runner import SingleAgentRunner
 from voice_agent_flow.agents.agent_node import AgentNode, HangUpNode, DoHangUp
 
@@ -49,40 +49,77 @@ class MultiAgentRunner:
             prompt=prompt,
             message_history=message_history,
         ):
-            # 普通事件：直接透传
-            if not isinstance(result.event, StructuredOutput):
+            if isinstance(result.event, AgentHandoff):
+                output = result.event.message
+                handoff_target = self._extract_handoff_target(output)
+                
+                if handoff_target is None:
+                    yield result
+                    return
+                
+                if handoff_target == "end":
+                    yield AgentResult(
+                        event = AgentTextStream(delta=self.ending_message or "拜拜，流程结束"),
+                        event_type = EventType.AgentTextStream
+                    )
+                    return
+                
+                result.event.message = {
+                    "source_agent_name": self.current_agent.name,
+                    "target_agent_name": handoff_target,
+                }
+                
+                # 有 handoff：切换当前 agent，透传 signal，停止当前轮
+                self.current_agent = self.get_agent(handoff_target)
+                self.runner.set_agent(self.current_agent)
+                
+                if hasattr(output, "model_dump"):
+                    self.agent_state.update(output.model_dump())
+    
                 yield result
-                continue
-
-            # StructuredOutput 作为控制信号
-            output = result.event.message
-            handoff_target = self._extract_handoff_target(output)
-
-            # 无 handoff：本轮正常结束
-            if handoff_target is None:
-                yield result
-                return
-            
-            if isinstance(output, DoHangUp):
-                print("Flow Ended signal received...")
                 return 
             
-            if handoff_target == "end":
-                yield AgentResult(
-                    event = AgentTextStream(delta=self.ending_message or "拜拜，流程结束"),
-                    event_type = EventType.AgentTextStream
-                )
-                return
-
-            # 有 handoff：切换当前 agent，透传 signal，停止当前轮
-            self.current_agent = self.get_agent(handoff_target)
-            self.runner.set_agent(self.current_agent)
-
-            if hasattr(output, "model_dump"):
-                self.agent_state.update(output.model_dump())
-
+            if isinstance(result.event, HangupSignal):
+                yield result
+                return 
+            
             yield result
-            return
+                
+                
+            # # 普通事件：直接透传
+            # if not isinstance(result.event, StructuredOutput):
+            #     yield result
+            #     continue
+
+            # # StructuredOutput 作为控制信号
+            # output = result.event.message
+            # handoff_target = self._extract_handoff_target(output)
+
+            # # 无 handoff：本轮正常结束
+            # if handoff_target is None:
+            #     yield result
+            #     return
+            
+            # if isinstance(output, DoHangUp):
+            #     print("Flow Ended signal received...")
+            #     return 
+            
+            # if handoff_target == "end":
+            #     yield AgentResult(
+            #         event = AgentTextStream(delta=self.ending_message or "拜拜，流程结束"),
+            #         event_type = EventType.AgentTextStream
+            #     )
+            #     return
+
+            # # 有 handoff：切换当前 agent，透传 signal，停止当前轮
+            # self.current_agent = self.get_agent(handoff_target)
+            # self.runner.set_agent(self.current_agent)
+
+            # if hasattr(output, "model_dump"):
+            #     self.agent_state.update(output.model_dump())
+
+            # yield result
+            # return
 
     def _extract_handoff_target(self, output: Any) -> str | None:
         """Return target agent name if output requests handoff; otherwise None."""
