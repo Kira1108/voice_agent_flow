@@ -35,6 +35,7 @@ class MultiAgentRunner:
             self._agent_cache[name] = agent_node.create()
         return self._agent_cache[name]
 
+
     async def run(
         self,
         prompt: str | None = None,
@@ -50,40 +51,43 @@ class MultiAgentRunner:
             message_history=message_history,
         ):
             if isinstance(result.event, AgentHandoff):
-                output = result.event.message
-                handoff_target = self._extract_handoff_target(output)
-                
-                if handoff_target is None:
-                    yield result
-                    return
-                
-                if handoff_target == "end":
-                    yield AgentResult(
-                        event = AgentTextStream(delta=self.ending_message or "感谢您的接听，祝您生活愉快，再见！"),
-                        event_type = EventType.AgentTextStream
-                    )
-                    return
-                
-                result.event.message = {
-                    "source_agent_name": self.current_agent.name,
-                    "target_agent_name": handoff_target,
-                }
-                
-                # 有 handoff：切换当前 agent，透传 signal，停止当前轮
-                self.current_agent = self.get_agent(handoff_target)
-                self.runner.set_agent(self.current_agent)
-                
-                if hasattr(output, "model_dump"):
-                    self.agent_state.update(output.model_dump())
-    
-                yield result
-                return 
+                yield self._handle_handoff(result)
+                return
             
             if isinstance(result.event, HangupSignal):
                 yield result
                 return 
             
             yield result
+
+    def _handle_handoff(self, result: AgentResult) -> AgentResult:
+        """Handle handoff side effects and return the emitted event result for this turn."""
+        output = result.event.message
+        handoff_target = self._extract_handoff_target(output)
+
+        if handoff_target is None:
+            raise ValueError("AgentHandoff event does not specify a valid handoff target.(None)")
+
+        if handoff_target == "end":
+            return AgentResult(
+                event=AgentTextStream(
+                    delta=self.ending_message or "感谢您的接听，祝您生活愉快，再见！"
+                ),
+                event_type=EventType.AgentTextStream,
+            )
+
+        result.event.message = {
+            "source_agent_name": self.current_agent.name,
+            "target_agent_name": handoff_target,
+        }
+
+        self.current_agent = self.get_agent(handoff_target)
+        self.runner.set_agent(self.current_agent)
+
+        if hasattr(output, "model_dump"):
+            self.agent_state.update(output.model_dump())
+
+        return result
                 
     def _extract_handoff_target(self, output: Any) -> str | None:
         """Return target agent name if output requests handoff; otherwise None."""
