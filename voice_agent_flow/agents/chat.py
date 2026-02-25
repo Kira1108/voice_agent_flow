@@ -34,6 +34,14 @@ class AgentSession:
             "new_handoff": self.new_handoff
         }
         
+    @property
+    def state(self):
+        return self.runner.agent_state
+    
+    @property
+    def current_agent(self):
+        return self.runner.current_agent
+        
     async def chat(self, query:str) -> str | None:
         if self.finished:
             print("Conversation already ended. Please start a new conversation.")
@@ -90,10 +98,4 @@ class AgentSession:
             self._new_messages = self.memory.messages[start_idx:]
             return output_text
             
-    @property
-    def state(self):
-        return self.runner.agent_state
     
-    @property
-    def current_agent(self):
-        return self.runner.current_agent
