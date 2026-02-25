@@ -36,7 +36,7 @@ class MultiAgentRunner:
         return self._agent_cache[name]
 
 
-    async def run(
+    async def _run(
         self,
         prompt: str | None = None,
         message_history: list | None = None,
@@ -59,6 +59,22 @@ class MultiAgentRunner:
                 return 
             
             yield result
+            
+    async def run(
+        self, prompt: str | None = None, message_history: list | None = None
+    ) -> AsyncGenerator[AgentResult, None]:
+        """Run multiple turns until handoff or hangup."""
+        rerun = False
+        
+        async for result in self._run(prompt=prompt, message_history=message_history):
+            if isinstance(result.event, AgentHandoff):
+                rerun = True
+            yield result
+            
+        if rerun:
+            async for result in self.run(message_history=message_history):
+                yield result
+        
 
     def _handle_handoff(self, result: AgentResult) -> AgentResult:
         """Handle handoff side effects and return the emitted event result for this turn."""
