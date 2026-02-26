@@ -53,7 +53,6 @@ class AgentSession:
         print(f"🤖[{self.runner.current_agent.name}]...Working.")
         start_idx = len(self.memory.messages)
         self.memory.add(Message.user(query))
-        
         output_text = ""
         async for event in self.runner.run(message_history = self.memory.to_pydantic()):
             

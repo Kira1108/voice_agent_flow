@@ -29,3 +29,4 @@ def create_ollama_model(model_name: str = 'gpt-oss:20b'):
         model_name=model_name,
         provider=OllamaProvider(base_url='http://localhost:11434/v1'),
     )
+    
