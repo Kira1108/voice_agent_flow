@@ -85,3 +85,33 @@ class Memory(BaseModel):
         
     def to_pydantic(self):
         return pmsg.to_history(self.model_dump()['messages'])
+    
+    @classmethod
+    def from_dict(cls, message_history: dict):
+        """Convert openai standard messasge history dict to Memory instance."""
+        memory = cls()
+        for msg in message_history:
+            role = msg.get("role")
+            if role == "user":
+                memory.add_user(msg.get("content", ""))
+            elif role == "assistant":
+                
+                if "content" in msg:
+                    memory.add_assistant(msg.get("content", ""))
+                    
+                elif "tool_name" in msg and "args" in msg:
+                    memory.add_tool_request(
+                        tool_name=msg.get("tool_name", ""),
+                        args=msg.get("args", ""),
+                        tool_call_id=msg.get("tool_call_id", "fake")
+                    )
+            elif role == "system":
+                memory.add_system(msg.get("content", ""))
+                
+            elif role == "tool":
+                tool_name = msg.get("tool_name", "")
+                tool_call_id = msg.get("tool_call_id", "fake")
+                content = msg.get("content", "")
+                memory.add_tool_return(tool_name, content, tool_call_id)
+                
+        return memory

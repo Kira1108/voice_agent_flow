@@ -11,12 +11,21 @@ from voice_agent_flow.memory import Message, Memory
 
 class AgentSession:
 
-    def __init__(self, runner: MultiAgentRunner):
-        self.memory = Memory()
+    def __init__(self, 
+                 runner: MultiAgentRunner, 
+                 memory: Memory = None):
+        self.memory = memory if memory is not None else Memory()
         self.runner = runner
         self.finished = False
         self._new_messages = None
         self._turn_handoff = None
+        self._turn_message = None
+        
+    def set_agent(self, agent_name:str):
+        self.runner.set_agent(agent_name)
+        
+    def set_memory(self, memory: Memory):
+        self.memory = memory
         
     @property
     def new_messages(self):
@@ -31,7 +40,8 @@ class AgentSession:
         messages = self.new_messages if self.new_messages is not None else []
         return {
             "new_messages": messages,
-            "new_handoff": self.new_handoff
+            "new_handoff": self.new_handoff,
+            "output": self._turn_message
         }
         
     @property
@@ -50,6 +60,7 @@ class AgentSession:
         
         self._new_messages = None
         self._turn_handoff = None
+        self._turn_message = None
         start_idx = len(self.memory.messages)
         output_text = ""
         
@@ -94,6 +105,7 @@ class AgentSession:
         if len(output_text) > 0:
             self.memory.add(Message.assistant(output_text))
             self._new_messages = self.memory.messages[start_idx:]
+            self._turn_message = output_text
             return output_text
         
         
