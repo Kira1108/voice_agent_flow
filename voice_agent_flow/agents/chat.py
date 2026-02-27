@@ -41,19 +41,18 @@ class AgentSession:
     @property
     def current_agent(self):
         return self.runner.current_agent
-        
-    async def chat(self, query:str) -> str | None:
+    
+    
+    async def _chat(self):
         if self.finished:
             print("Conversation already ended. Please start a new conversation.")
             return
         
         self._new_messages = None
         self._turn_handoff = None
-        
-        print(f"🤖[{self.runner.current_agent.name}]...Working.")
         start_idx = len(self.memory.messages)
-        self.memory.add(Message.user(query))
         output_text = ""
+        
         async for event in self.runner.run(message_history = self.memory.to_pydantic()):
             
             if isinstance(event.event, AgentTextStream):
@@ -96,5 +95,10 @@ class AgentSession:
             self.memory.add(Message.assistant(output_text))
             self._new_messages = self.memory.messages[start_idx:]
             return output_text
-            
-    
+        
+        
+    async def chat(self, query:str) -> str | None:
+        print(f"🤖[{self.runner.current_agent.name}]...Working.")
+        self.memory.add(Message.user(query))
+        return await self._chat()
+        

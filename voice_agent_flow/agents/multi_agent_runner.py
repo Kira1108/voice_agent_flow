@@ -34,7 +34,14 @@ class MultiAgentRunner:
             agent_node = self.agents[name]
             self._agent_cache[name] = agent_node.create()
         return self._agent_cache[name]
-
+    
+    def set_agent(self, name:str) -> None:
+        if name not in self.agents:
+            raise ValueError(f"Agent '{name}' not found in agents configuration.")
+        
+        agent = self.get_agent(name)
+        self.current_agent = agent
+        self.runner.set_agent(agent)
 
     async def _run(
         self,
@@ -125,6 +132,7 @@ class MultiAgentRunner:
             return target
 
         return None
+
 
 
 
